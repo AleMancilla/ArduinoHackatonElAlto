@@ -37,17 +37,26 @@ void setup() {
 
 void loop()
 {
-  Serial.println("1. Escribir");
-  Serial.println("2. Leer");
+  Serial.println("*****************************************");
+  Serial.println("*\t1. Registrar Nuevo Usuario\t*");
+  Serial.println("*\t2. Registrar Monto de Compra\t*");
+  Serial.println("*****************************************");
   while(!Serial.available()){}
   c=Serial.read();
   switch(c)
   {
     case '1':
+    Serial.println("Coloque la targeta del usuario sobre el lector de targeta y no lo quite de ahi");
     Escribir();
     break;
     case '2':
-    Leer();
+    Serial.println("Introduzca el monto total de las compras que realizo el usuario:");
+    while(!Serial.available()){}
+    float Monto = Serial.parseFloat();
+    Serial.print(Monto);
+    Serial.println("  Bs");
+    Serial.println("Coloque la targeta del cliente");
+    Leer(Monto);
     break;
   }
 }
@@ -67,23 +76,23 @@ void Escribir()
     //return;
   }
 
-  Serial.print(F("Card UID:"));    //Dump UID
+  ////Serial.print(F("Card UID:"));    //Dump UID
   for (byte i = 0; i < mfrc522.uid.size; i++) {
-    Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
-    Serial.print(mfrc522.uid.uidByte[i], HEX);
+    ////Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+    ////Serial.print(mfrc522.uid.uidByte[i], HEX);
   }
-  Serial.print(F(" PICC type: "));   // Dump PICC type
+  ////Serial.print(F(" PICC type: "));   // Dump PICC type
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
-  Serial.println(mfrc522.PICC_GetTypeName(piccType));
+  ////Serial.println(mfrc522.PICC_GetTypeName(piccType));
 
   byte buffer[34];
   byte block;
   MFRC522::StatusCode status;
   byte len;
 
-  Serial.setTimeout(20000L) ;     // wait until 20 seconds for input from serial
+  Serial.setTimeout(40000L) ;     // wait until 40 seconds for input from serial
   // Ask personal data: Family name
-  Serial.println(F("Entra codigo terminando con #"));
+  Serial.println(F("Entra NickName terminando con #"));
   len = Serial.readBytesUntil('#', (char *) buffer, 30) ; // read family name from serial
   for (byte i = len; i < 30; i++) buffer[i] = ' ';     // pad with spaces
 
@@ -92,24 +101,24 @@ void Escribir()
   status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(mfrc522.uid));
   if (status != MFRC522::STATUS_OK) {
     Serial.print(F("PCD_Authenticate() failed: "));
-    Serial.println(mfrc522.GetStatusCodeName(status));
+    //Serial.println(mfrc522.GetStatusCodeName(status));
     return;
   }
-  else Serial.println(F("PCD_Authenticate() success: "));
+  else Serial.println(F("___USUARIO REGISTRADO EXITOSAMENTE____\n "));
 
   // Write block
   status = mfrc522.MIFARE_Write(block, buffer, 16);
   if (status != MFRC522::STATUS_OK) {
-    Serial.print(F("MIFARE_Write() failed: "));
-    Serial.println(mfrc522.GetStatusCodeName(status));
+    //Serial.print(F("MIFARE_Write() failed: "));
+    //Serial.println(mfrc522.GetStatusCodeName(status));
     return;
   }
-  else Serial.println(F("MIFARE_Write() success: "));
+  else Serial.println(F("\n\t**Fin del proceso**\n"));
   Serial.println(" ");
   mfrc522.PICC_HaltA(); // Halt PICC
   mfrc522.PCD_StopCrypto1();  // Stop encryption on PCD
 }
-void Leer()
+void Leer(float Monto)
 {
   MFRC522::MIFARE_Key key;
   for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
@@ -130,12 +139,11 @@ void Leer()
   while ( ! mfrc522.PICC_ReadCardSerial()) {
     //return;
   }
-
-  Serial.println(F("**Card Detected:**"));
+  Serial.println(F("\n\t**Card Detected:**"));
 
   //-------------------------------------------
 
-  mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
+  //mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
 
   //mfrc522.PICC_DumpToSerial(&(mfrc522.uid));      //uncomment this to see all blocks in hex
   len = 18;
@@ -147,35 +155,50 @@ void Leer()
   status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, 1, &key, &(mfrc522.uid)); //line 834
   if (status != MFRC522::STATUS_OK) {
     Serial.print(F("Authentication failed: "));
-    Serial.println(mfrc522.GetStatusCodeName(status));
+    //Serial.println(mfrc522.GetStatusCodeName(status));
     return;
   }
 
   status = mfrc522.MIFARE_Read(block, buffer2, &len);
   if (status != MFRC522::STATUS_OK) {
     Serial.print(F("Reading failed: "));
-    Serial.println(mfrc522.GetStatusCodeName(status));
+    //Serial.println(mfrc522.GetStatusCodeName(status));
     return;
   }
 
   //PRINT LAST NAME
   String codigo = "";
   for (uint8_t i = 0; i < 16; i++) {
-    Serial.write(buffer2[i] );
+    //Serial.write(buffer2[i] );
     char tt=buffer2[i];
     codigo = codigo + String(tt);
   }
+  float adicionar = Firebase.getFloat(codigo);
+  Serial.print("Usuario:____________________________________");
   Serial.println(codigo);
-  String adicionar = Firebase.getString(codigo);
-  adicionar = adicionar +"prueba";
+  Serial.print("Puntos Acumulados:__________________________");
+  Serial.println(adicionar);
+  Serial.print("Puntos Que se sumaran con esta compra:______");
+  
+  
+  //Serial.println("Introduzca el monto total que el cliente compro en Bolivianos:");
+  //while(!Serial.available()){}
+  float variable = Monto;
+  
+  variable = variable * 0.05;
+  Serial.println(variable);
+  adicionar = adicionar + variable;
   // set string value
-  Firebase.setString(codigo, adicionar);
+  
+  Serial.print("Puntos Acumulados Ahora:____________________");
+  Serial.println(adicionar);
+  Firebase.setFloat(codigo, adicionar);
   //----------------------------------------
 
-  Serial.println(F("\n**End Reading**\n"));
+  Serial.println(F("\n\t**Fin del proceso**\n"));
 
-  delay(1000); //change value if you want to read cards faster
-
+  delay(3500); //change value if you want to read cards faster
+  Serial.flush();
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 }
