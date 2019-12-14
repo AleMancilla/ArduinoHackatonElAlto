@@ -1,16 +1,38 @@
 #include <SPI.h>
 #include <MFRC522.h>
 
+#include <ESP8266WiFi.h>
+#include <FirebaseArduino.h>
+
 constexpr uint8_t RST_PIN = D2;     // Configurable, see typical pin layout above
 constexpr uint8_t SS_PIN = D4;     // Configurable, see typical pin layout above
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
 char c;
 
+#define FIREBASE_HOST "iot-domotic.firebaseio.com"
+#define FIREBASE_AUTH "xKfX5zoUrQ5lxa4n5oDFlJORUW8axXZKFttpvjrT"
+#define WIFI_SSID "vw-10613"
+#define WIFI_PASSWORD "ZTE1RTHH4Q04180"
+
 void setup() {
   Serial.begin(9600);        // Initialize serial communications with the PC
   SPI.begin();               // Init SPI bus
   mfrc522.PCD_Init();        // Init MFRC522 card
+
+  // connect to wifi.
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.print("connected: ");
+  Serial.println(WiFi.localIP());
+  
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  
 }
 
 void loop()
@@ -144,7 +166,10 @@ void Leer()
     codigo = codigo + String(tt);
   }
   Serial.println(codigo);
-  
+  String adicionar = Firebase.getString(codigo);
+  adicionar = adicionar +"prueba";
+  // set string value
+  Firebase.setString(codigo, adicionar);
   //----------------------------------------
 
   Serial.println(F("\n**End Reading**\n"));
